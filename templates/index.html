@@ -1,41 +1,172 @@
 {% extends "base.html" %}
 
-{% block user_info %}
-<div class="jumbotron" style="margin: 10px">
-    <!-- @todo - message -->
-    <form action="/submit" method="POST">
-        <div class="form-group">
-            <label for="sso">SSO</label>
-            <input type="number" class="form-control" id="sso" placeholder="SSO">
-        </div>
-        <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" class="form-control" id="name" placeholder="Full Name">
-        </div>
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" class="form-control" id="email" placeholder="name@ge.com">
-        </div>
-    </form>
-</div>
-{% endblock %}
+
+{% block title %}Select Trainings{% endblock %}
 
 {% block training_list %}
-<div class="accordion" id="accordionExample">
-    <div class="card">
-        <div class="card-header" id="headingOne">
-        <h2 class="mb-0">
-            <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-            Collapsible Group Item #1
-            </button>
-        </h2>
-        </div>
-        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordionExample">
-            <div class="card-body">
-                Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+<form class="col s12">
+<div class="card horizontal blue-grey darken-1" style="position: obsolute; top: -20px;">
+    <div class="card-image">
+    <img src="{{ url_for('static', filename='images/ge.png') }}"  />
+    </div>
+    <div class="card-stacked">
+    <div class="card-content">
+        <h1 class="header" style="color: #212121">Select your trainings</h1>
+    </div>
+    </div>
+</div>
+<div class="section">
+<div class="container-xl">
+<div class="row">
+<div class="col s7">
+{% for category, knowledge_areas in categories_knowledge_list.items() %}
+    <section>
+    <h3 class="header">
+        <span id="spn_selected_category">{{category}}</span>
+    </h3>
+        {% for knowledge_area in knowledge_areas %}
+        <details>  
+            <summary>{{knowledge_area}}</summary>
+            <ul class="collapsible">
+            {# set trainings_knowledge_areas = [(training) for training in trainings if training.knowledge_area == knowledge_area] #}
+            {% for training in trainings %}
+                {% if training.knowledge_area == knowledge_area and training.category == category %}
+                <li>
+                    <div class="collapsible-header">
+                        {% if(training.link | length > 0) %}
+                            <a href="{{training.link}}" target="_blank">{{training.title}}</a> 
+                        {% else %}
+                            <p class="font-weight-bold">{{training.title}}</p>
+                        {% endif %}
+                        <span class="badge">
+                            <label>
+                                <input type="checkbox" class="add_training_check" id="training_check{{training.id}}" training_id="{{training.id}}" training_category="{{training.category}}" training_knowledge_area="{{training.knowledge_area}}" training_title="{{training.title}}" />
+                                <span></span>
+                            </label>
+                        </span>
+                    </div>   
+                    {% if(training.description | length > 0) %}
+                        <div class="collapsible-body">
+                            {{training.description}}
+                        </div> 
+                    {% endif %}
+                </li>
+                {% endif %}
+            {% endfor %}
+            </ul>     
+        </details>
+        {% endfor %}
+    </section>
+{% endfor %}
+</div>
+<div class="col s5">
+                <div id="training_table" class="jumbotron-fluid header_div blue-grey darken-2">
+                    <h5 class="header center" style="color: #ee6e73">Selected trainings</h5>
+                    <table class="highlight responsive-table" style="width:100%; vertical-align: top;">
+                        <thead>
+                            <tr>
+                                <th style="vertical-align: top; width: 20%">Category</th>
+                                <th style="vertical-align: top; width: 30%">Knowledge Area</th>
+                                <th style="vertical-align: top; width: 40%">Title</th>
+                                <th style="vertical-align: top; width: 10%"><i class="material-icons">delete</i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="training_tbody">
+                        </tbody>
+                    </table>
+                </div>
+</div>
+</div>
+</div>
+</div>
+<div class="divider"></div>
+<script src="{{ url_for('static', filename='js/base.js') }}"></script>
+{% endblock %}
+
+{% block user_info %}
+<div class="divider"></div>
+    <div class="container-xl">
+        <div class="row">
+            <div class="col s11">
+                <h6 class="header">Click <a href="#" id="show_training_form"><i class="material-icons">add_box</i></a> to add any missing trainings</h6>
             </div>
+        </div>
+        <div class="row">
+        <div class="card col s7" id="add_training_form">
+            <div class="row">
+                <div class="col s2">
+                    <select id="category">
+                        <option value="Technical">Technical</option>
+                        <option value="Project Management">Project Management</option>
+                    </select>
+                    <label>Category</label>
+                </div>
+                <div class="input-field col s3">
+                    <input placeholder="knowledge area" id="knowledge_area" type="text" class="validate">
+                    <label>Knowledge Area</label>
+                </div>
+                <div class="input-field col s3">
+                    <input placeholder="title" id="title" type="text" class="validate">
+                    <label>Title</label>
+                </div>
+                <div class="input-field col s4">
+                    <input placeholder="link" id="link" type="text" class="validate">
+                    <label>Link</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s10">
+                    <textarea id="description" class="materialize-textarea"></textarea>
+                    <label for="textarea1">Description</label>
+                </div>
+                <div class="input-field col s2">
+                    <button class="btn waves-effect waves-light" type="button" id="add_training">Add
+                        <i class="material-icons right">add</i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="divider"></div>
+    <div class="divider"></div>
+    <div class="section">
+        <div class="container-big">      
+            <div class="row">
+                <div class="col s4">
+                    <select id="approver">
+                    <option value="0" selected>Approver</option>
+                    {% for approver in approvers %}
+                        <option value="{{approver.id}}">{{approver.name}}</option>
+                    {% endfor %}
+                    </select>
+                    <label>Pick your Approver</label>
+                  </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s4">
+                    <input placeholder="name" id="name" type="text" class="validate">
+                    <label for="name">Name</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s4">
+                    <input placeholder="ge email" id="email" type="text" class="validate">
+                    <label for="email">Email</label>
+                </div>
+            </div>
+            <span style="color: #e53935;" id="validation_message"></span>
+            <div class="row"
+                <div class="input-field col s1"></div>
+                <div class="input-field col s4">
+                    <button class="btn waves-effect waves-light" type="button" id="submit_form">Submit
+                        <i class="material-icons right">send</i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</form>
+    <!-- @todo - message -->
 {% endblock %}
+

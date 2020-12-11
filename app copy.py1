@@ -1,0 +1,123 @@
+from enum import unique
+from flask import Flask, render_template, request, url_for
+import json
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import backref
+from sqlalchemy.sql.schema import UniqueConstraint
+from sqlalchemy import update
+
+with open("config.json") as f:
+    data = json.load(f)
+    
+
+app = Flask(__name__)
+#/*"SQLALCHEMY_DATABASE_URI" : "mysql+mysqldb://srikpv:password@srikpv.mysql.pythonanywhere-services.com/srikpv$training"*/
+app.config["SQLALCHEMY_DATABASE_URI"] = data["SQLALCHEMY_DATABASE_URI"]
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+
+class Training(db.Model):
+    training_id = db.Column(db.Integer, primary_key = True)
+    category = db.Column(db.String(200))
+    knowledge_area = db.Column(db.String(200))
+    title = db.Column(db.String(300))
+    link = db.Column(db.String(1000))
+    desc = db.Column(db.String(1000))
+    is_del = db.Column(db.Boolean, default = False)
+    
+    def __init__(self, training_category, training_knowledge_are, training_title, training_link, training_description):
+        self.category = training_category
+        self.knowledge_area = training_knowledge_are
+        self.title = training_title
+        self.link = training_link
+        self.desc = training_description
+
+class User(db.Model):
+    user_id = db.Column(db.Integer, primary_key = True)
+    sso = db.Column(db.String(10), unique = True, nullable = False)
+    name = db.Column(db.String(200), nullable = False)
+    email = db.Column(db.String(200), nullable = False)
+    trainings = db.relationship("Assigned_Training", backref=db.backref('user', lazy='joined'), lazy = 'select')
+    
+    def __init__(self, user_sso, user_name, user_email):
+        self.sso = user_sso
+        self.name = user_name
+        self.email = user_email
+
+class Assigned_Training(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable = False)
+    training_id = db.Column(db.Integer, db.ForeignKey('training.training_id'), nullable = False)
+    approved = db.Column(db.Boolean, default = False)
+    is_del = db.Column(db.Boolean, default = False)
+    
+    def __init__(self, user_id, training_id):
+        self.user_id = user_id
+        self.training_id = training_id
+
+@app.route("/", methods = ["GET"])
+def index():
+    trainings = Training.query.filter_by(is_del=False).order_by(Training.category, Training.knowledge_area, Training.training_id).all()
+    
+    
+    ###Improve this logic with pandas dataframe
+    categories_knowledge_list = {}
+    for training in trainings:
+        if training.category in categories_knowledge_list:
+            if training.knowledge_area not in categories_knowledge_list[training.category]:
+                categories_knowledge_list[training.category].append(training.knowledge_area)
+        else:
+            categories_knowledge_list[training.category] = []
+            categories_knowledge_list[training.category].append(training.knowledge_area)
+    
+    # query = db.session.query(Training.category.distinct().label("category"))
+    # categories = [row.category for row in query.all()]
+    
+    # query = db.session.query(Training.filter_by(category="Technical").knowledge_area.distinct().label("knowledge_area"))
+    # knowledge_areas = [row.knowledge_area for row in query.all()]
+    
+    return render_template("index.html", trainings = trainings, categories_knowledge_list = categories_knowledge_list)
+
+@app.route("/submit", methods = ["POST"])
+def save_user_trainings():
+    user = User(request.form["sso"], request.form["name"], request.form["email"])    
+    db.session.add(user)
+    db.session.commit()
+    
+    training_list = json.loads(request.form["selectedTrainings"])    
+    
+    for training_id in training_list:
+        assigned_training = Assigned_Training(user.user_id, training_id)
+        db.session.add(assigned_training)
+    db.session.commit()
+    #trainings = Assigned_Training.query.filter_by(is_del=False).order_by(Assigned_Training.id).all()
+    
+    return render_template("success.html")
+
+@app.route("/approve", methods = ["GET"])
+def approve_trainings():
+    assigned_trainings = Assigned_Training.query.filter_by(is_del=False, approved=False).order_by(Assigned_Training.user_id).all()
+    trainings = Training.query.filter_by(is_del=False).order_by(Training.category, Training.knowledge_area, Training.training_id).all()
+    users = []
+    user_ids = []
+    for assigned_training in assigned_trainings:
+        if assigned_training.user_id not in user_ids:
+            user_ids.append(assigned_training.user_id)
+            user = User.query.filter_by(user_id=assigned_training.user_id).first()
+            users.append(user)
+    return render_template("approve.html", trainings = trainings, assigned_trainings = assigned_trainings, users = users)
+
+@app.route("/approvetraining", methods = ["POST"])
+def approve_user_trainings():
+    approved_training_ids = json.loads(request.form["selectedTrainings"])    
+    for approved_training_id in approved_training_ids:
+        assigned_training = Assigned_Training.query.filter_by(id = approved_training_id).first()
+        assigned_training.approved = True
+    db.session.commit()   
+    return render_template("success.html")
+
+
+if __name__ == "__main__":
+    app.debug = True
+    app.run()

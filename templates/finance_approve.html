@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Finance Approve Trainings{% endblock %}
+
+{% block user_info %}
+
+{% endblock %}
+
+{% block training_list %}
+<div class="card horizontal blue-grey darken-1" style="position: obsolute; top: -20px;">
+    <div class="card-image">
+    <img src="{{ url_for('static', filename='images/ge.png') }}"  />
+    </div>
+    <div class="card-stacked">
+    <div class="card-content">
+        <h1 class="header" style="color: #212121">Approve Trainings - Finance</h1>
+    </div>
+    </div>
+</div>
+<div class="container">
+<form class="col s12">
+<table class="striped">
+  <thead>
+    <tr>
+      <th style="vertical-align: top; width: 18%">User</th>
+      <th style="vertical-align: top; width: *">Training List</th>
+      <th style="vertical-align: top; width: 5%">Approve</th>       
+    </tr>
+  </thead>
+  <tbody>
+{% for training_assignment in training_assignments %}
+    <tr>
+        <td style="vertical-align: top;">{{training_assignment.name}}</td>
+        <td>
+            <ul class="collapsible">
+            <li>
+            <div class="collapsible-header">
+                {% if(training_assignment.link | length > 0) %}
+                    <a href="{{training_assignment.link}}" target="_blank">{{training_assignment.title}}</a> 
+                {% else %}
+                    <p class="font-weight-bold">{{training_assignment.title}}</p>
+                {% endif %}
+            </div>
+            <div class="collapsible-body">
+            {% if(training_assignment.description | length > 0) %}
+                    {{training_assignment.description}}
+            {% endif %}
+            <span class="teal lighten-2" style="float:right"> {% if(training_assignment.free == 1) %}Free{% endif%}{% if training_assignment.free == 1 and training_assignment.advanced == 1  %},{% endif%}{% if(training_assignment.advanced == 1) %}Advanced{% endif%}</span>
+            </div>
+            </li>
+            </ul>
+        </td>
+        <td style="vertical-align: top;">
+            <span style="float: right;">
+                <label>
+                    <input type="checkbox" class="approve_training_check" id="training_check{{training_assignment.id}}" training_assignment_id="{{training_assignment.id}}" />
+                    <span></span>
+                </label>
+            </span>
+        </td>
+    </tr>    
+{% endfor %}
+</tbody>
+</table>
+<input type="hidden" id="approver_id" value="{{approver.id}}" />
+</form>
+</div>
+<div class="divider"></div>
+<div class="container" style="margin-top:10px">
+<button class="btn waves-effect waves-light" type="button" id="submit_form">Approve
+</button>
+</div>
+<script src="{{ url_for('static', filename='js/finance_approve.js') }}"></script>
+{% endblock %}
+
